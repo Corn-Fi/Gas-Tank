@@ -13,17 +13,17 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  // const GasTank = await ethers.getContractFactory("GasTank");
-
-  // const gasTank = await GasTank.deploy();
-  
-  // const gt = await gasTank.deployed();
-
-  const GasTank = await ethers.getContractFactory("TestGasTank");
+  const GasTank = await ethers.getContractFactory("GasTank");
 
   const gasTank = await GasTank.deploy();
   
   const gt = await gasTank.deployed();
+
+  // const GasTank = await ethers.getContractFactory("TestGasTank");
+
+  // const gasTank = await GasTank.deploy();
+  
+  // const gt = await gasTank.deployed();
 
   console.log(`
     Gas Tank deployed at ${gt.address}

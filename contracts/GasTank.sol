@@ -17,10 +17,10 @@
 //          ^  ^  ^       _H_ \
 //
 // ----- Corn Finance is a midwest grown decentralized finance protocol with the aim of making life easier -----
-// ------------------------ When you're tired of living in the past, live in the future ------------------------
-// ----------------------------------------------------- N -----------------------------------------------------
+// ---------------------------------- We need a bigger ship where we're going ----------------------------------
+// ---------------------------------------------------- C F ----------------------------------------------------
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -41,7 +41,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 * tokens desposited in the Gas Tank. INSUFFICIENT FUNDS WILL RESULT IN TASK EXECUTION 
 * FAILURE.
 *
-* A 0.003 MATIC fee is applied to all executed tasks.
+* A 0.01 MATIC fee is applied to all executed tasks.
 *
 * This contract has security features included that require the user to approve individual
 * payees for pulling payment. Unlike ERC20 approvals, the user will only be able to 
@@ -70,7 +70,7 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     mapping(address => mapping(address => bool)) public userPayeeApprovals;
 
     // Protocol fee
-    uint256 public constant txFee = 3e15; // 0.003 MATIC
+    uint256 public constant txFee = 1e16; // 0.01 MATIC
     address payable public constant feeAddress = payable(0x93F835b9a2eec7D2E289c1E0D50Ad4dEd88b253f);
 
     // --------------------------------------------------------------------------------

@@ -5,20 +5,68 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 
+const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+const account = new ethers.Wallet(process.env.PRIVATE_KEY);
+const signer = account.connect(provider);
+
+const gasTankAddress = "0xCfbCCC95E48D481128783Fa962a1828f47Fc8A42";
+const payeeAddress = "";
+
+
+// ----------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------
+
+async function depositGas(gt, receiver, amount) {
+  return await gt.depositGas(receiver, {value: amount});
+}
+
+// ----------------------------------------------------------------------------------
+
+async function withdrawGas(gt, amount) {
+  return await gt.depositGas(amount);
+}
+
+// ----------------------------------------------------------------------------------
+
+async function addPayee(gt, payee) {
+  return await gt.addPayee(payee);
+}
+
+// ----------------------------------------------------------------------------------
+
+async function removePayee(gt, payee) {
+  return await gt.removePayee(payee);
+}
+
+// ----------------------------------------------------------------------------------
+
+async function emergencyWithdraw(gt, token, amount) {
+  return await gt.emergencyWithdraw(token, amount);
+}
+
+// ----------------------------------------------------------------------------------
+
+async function pay(gt, payer, payee, amount) {
+  return await gt.pay(payer, payee, amount);
+}
+
+// ----------------------------------------------------------------------------------
+
+async function approve(gt, payee, approve) {
+  return await gt.approve(payee, approve);
+}
+
+// ----------------------------------------------------------------------------------
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
-
   const GasTank = await ethers.getContractFactory("GasTank");
-  
-  const gt = await GasTank.attach("0xA6B3b9374879e87aD7Dd79CB4b9e5e4e1C1bc106");
+  const gasTank = await GasTank.attach(gasTankAddress);
 
-  await gt.withdrawGas(hre.ethers.utils.parseUnits("0.01", "ether"));
+  // **** Examples ****
+  // await addPayee(gasTank, signer.address);
+  // await removePayee(gasTank, signer.address);
+  // await approve(gasTank, payeeAddress, true);
+  // await pay(gasTank, signer.address, payeeAddress, hre.ethers.utils.parseUnits("0.0001", "ether"));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

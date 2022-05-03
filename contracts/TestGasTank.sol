@@ -20,7 +20,7 @@
 // ------------------------ When you're tired of living in the past, live in the future ------------------------
 // ----------------------------------------------------- N -----------------------------------------------------
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
