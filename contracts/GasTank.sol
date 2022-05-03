@@ -15,6 +15,10 @@
 //     '.-=-=-=-=-=-=-.' \/ \
 //       `-=.=-.-=.=-'    \ /\
 //          ^  ^  ^       _H_ \
+//
+// ----- Corn Finance is a midwest grown decentralized finance protocol with the aim of making life easier -----
+// ------------------------ When you're tired of living in the past, live in the future ------------------------
+// ----------------------------------------------------- N -----------------------------------------------------
 
 pragma solidity ^0.8.0;
 
@@ -25,7 +29,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
-* @title Corn Finance Gas Tank
+* @title Corn Finance Gas Tank v1.0 (May 2022)
 * @author C.W.B.
 * @notice Users need to deposit native tokens into this contract in order to use 
 * automated Corn Finance contracts. A user will interact with the Gas Tank by 
@@ -34,22 +38,39 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 * Gas Tank.
 *
 * NOTE: Automated tasks are only executed when the task creator has sufficient native 
-* token desposited in the Gas Tank. INSUFFICIENT FUNDS WILL RESULT IN TASK EXECUTION 
+* tokens desposited in the Gas Tank. INSUFFICIENT FUNDS WILL RESULT IN TASK EXECUTION 
 * FAILURE.
 *
-* A 0.001 MATIC fee is applied to all executed tasks.
+* A 0.003 MATIC fee is applied to all executed tasks.
+*
+* This contract has security features included that require the user to approve individual
+* payees for pulling payment. Unlike ERC20 approvals, the user will only be able to 
+* set an approval flag as true or false for a given Payer --> Payee, instead of being able
+* to approve an amount. Use of this security feature prevents the contract owner from 
+* calling addPayee() and adding a malicious payee that could then call pay() without
+* restriction.
 */
 contract GasTank is Ownable, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     // Amount of gas a user has deposited
+    // userGasAmounts[user] = amount of ETH the user deposited into this contract 
     mapping(address => uint256) public userGasAmounts;
 
+    // List of all active & inactive approved payees
     address[] public approvedPayees;
+
+    // Active approved payees
+    // _approvedPayees[payee] = true | false
     mapping(address => bool) public _approvedPayees;
 
-    uint256 public constant txFee = 1e15; // 0.001 MATIC
+    // Payer --> Payee approvals
+    // userPayeeApprovals[payer][payee] = true | false
+    mapping(address => mapping(address => bool)) public userPayeeApprovals;
+
+    // Protocol fee
+    uint256 public constant txFee = 3e15; // 0.003 MATIC
     address payable public constant feeAddress = payable(0x93F835b9a2eec7D2E289c1E0D50Ad4dEd88b253f);
 
     // --------------------------------------------------------------------------------
@@ -58,6 +79,7 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     event DepositGas(address indexed user, uint256 amount);
     event WithdrawGas(address indexed user, uint256 amount);
     event Pay(address indexed payer, address indexed payee, uint256 amount);
+    event Approved(address indexed payer, address indexed payee, bool approved);
 
 
     // --------------------------------------------------------------------------------
@@ -73,6 +95,14 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     // /////////////////////////// State Changing Functions ///////////////////////////
     // --------------------------------------------------------------------------------
 
+    /**
+    * @dev Approve an address for pulling gas payment from user deposited ETH within 
+    * this contract.
+    * @notice Only the contract owner (dev) can call this function and add approved
+    * payees. Be aware that each user still needs to approve added payees in order
+    * for the payee to pull payment from the user's deposited funds in the Gas Tank.
+    * @param _payee Payee to grant pulling payment permissions to
+    */
     function addPayee(address _payee) external onlyOwner {
         require(!_approvedPayees[_payee], "CornFi Gas Tank: Payee Already Added");
         _approvedPayees[_payee] = true;
@@ -81,6 +111,17 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
 
     // --------------------------------------------------------------------------------
 
+    /**
+    * @dev Revoke permissions from a payee.
+    * @notice Payee will no longer be able to pull payment after removal. Payee can be
+    * approved again after removal by the owner calling addPayee(). Be aware that removal
+    * of a payee does not remove the address from the 'approvedPayees' array, only the 
+    * '_approvedPayees' mapping is updated. The 'approvedPayees' array is strictly for
+    * informational purposes to view all approved payees, active or not.
+    *
+    * Always verify the approval state of a payee by calling _approvedPayees(address).
+    * @param _payee Payee to remove pulling payment permissions from
+    */
     function removePayee(address _payee) external onlyOwner {
         require(_approvedPayees[_payee], "CornFi Gas Tank: Invalid payee");
         _approvedPayees[_payee] = false;
@@ -89,10 +130,10 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     // --------------------------------------------------------------------------------
 
     /**
-    * @notice Deposit ETH to pay for gas cost accrued from filling orders. ETH deposited
-    * is automatically taken from the order owners balance when their orders are filled.
-    * User is able to withdraw their balance of ETH at any point in time. This function
-    * is not callable when 'isPaused()' == true.
+    * @dev Deposit ETH into this contract to pay for automated tasks requiring payment. 
+    * @notice ETH deposited is automatically taken when an automated task is executed. 
+    * User is able to withdraw their available balance of ETH at any point in time. This 
+    * function is not callable when 'isPaused()' == true.
     * @param _receiver: Address that is credited with the deposited ETH
     */
     function depositGas(address _receiver) external payable nonReentrant whenNotPaused {
@@ -108,10 +149,11 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     // --------------------------------------------------------------------------------
 
     /**
-    * @notice Remove the deposited ETH balance of a user. Any amount of ETH not used to
-    * pay for gas is able to be withdrawn. Withdrawing ETH while still having open orders
-    * will result in the orders not being filled. A user must maintain a certian amount
-    * of ETH deposited to cover gas costs.  
+    * @dev Remove deposited ETH of a user. 
+    * @notice Withdrawing ETH while having active automated tasks requiring payment will 
+    * result in execution FAILURE. A user must maintain a certian amount of ETH deposited 
+    * to cover gas costs.  
+    * @param _amount Amount of ETH to withdraw from this contract
     */
     function withdrawGas(uint256 _amount) external nonReentrant {
         // Revert if the user does not have any deposited ETH
@@ -135,8 +177,13 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     // --------------------------------------------------------------------------------
 
     /**
-    * @dev
-    * @param _payer 
+    * @dev Approved payee contracts will call this function to receive gas payment from 
+    * task creator. Caller must be an approved payee. Transaction will revert if the
+    * payer has insufficient funds for payment. Payer is charged a transaction fee on
+    * every payment.
+    * @param _payer Payment payer
+    * @param _payee Payment receiver
+    * @param _amount Payment amount
     */
     function pay(
         address _payer, 
@@ -145,7 +192,8 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     ) external onlyApprovedPayee whenNotPaused nonReentrant {
         uint256 amount = _amount.add(txFee);
 
-        require(userGasAmounts[_payer] >= amount, "CornFi Gas Tank: Insufficient User Funds");
+        require(userGasAmounts[_payer] >= amount, "CornFi Gas Tank: Insufficient user funds");
+        require(userPayeeApprovals[_payer][_payee], "CornFi Gas Tank: Payment not approved");
         
         userGasAmounts[_payer] = userGasAmounts[_payer].sub(amount);
 
@@ -161,9 +209,33 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
 
     // --------------------------------------------------------------------------------
 
-    // Claim ERC20 tokens accidently sent to this contract. All user funds are the native
-    // token. This function cannot withdraw native tokens, only ERC20 tokens.
+    /**
+    * @dev Claim ERC20 tokens in this contract. 
+    * @notice All user funds stored in this contract are the native token. This function 
+    * cannot withdraw native tokens, only ERC20 tokens. This function is only used for
+    * claiming ERC20 tokens that were sent to this contract in error. Only the contract
+    * owner (dev) can call this function.
+    * @param _token ERC20 token to withdraw
+    * @param _amount Amount of ERC20 token to withdraw
+    */
     function emergencyWithdraw(IERC20 _token, uint256 _amount) external onlyOwner {
         _token.safeTransfer(owner(), _amount);
+    }
+
+    // --------------------------------------------------------------------------------
+
+    /**
+    * @dev Set payee approval state at the payer level 
+    * @notice Approving a payee will allow the payee to pull payment from the payer
+    * deposited funds. Payee approval can be granted or revoked at any time by the user.
+    * Caller can only change their own approval states of payees. Payees remain approved 
+    * until approval is revoked.
+    * @param _payee Payment receiver
+    * @param _approve true: Payee can pull payment from user deposited funds 
+    * false: Payee cannot pull payment from user deposited funds
+    */
+    function approve(address _payee, bool _approve) external {
+        userPayeeApprovals[msg.sender][_payee] = _approve;
+        emit Approved(msg.sender, _payee, _approve);
     }
 }

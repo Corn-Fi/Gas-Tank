@@ -5,6 +5,7 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 
+
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
   // line interface.
@@ -13,21 +14,11 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  // const GasTank = await ethers.getContractFactory("GasTank");
-
-  // const gasTank = await GasTank.deploy();
+  const GasTank = await ethers.getContractFactory("GasTank");
   
-  // const gt = await gasTank.deployed();
+  const gt = await GasTank.attach("0xA6B3b9374879e87aD7Dd79CB4b9e5e4e1C1bc106");
 
-  const GasTank = await ethers.getContractFactory("TestGasTank");
-
-  const gasTank = await GasTank.deploy();
-  
-  const gt = await gasTank.deployed();
-
-  console.log(`
-    Gas Tank deployed at ${gt.address}
-  `);
+  await gt.withdrawGas(hre.ethers.utils.parseUnits("0.01", "ether"));
 }
 
 // We recommend this pattern to be able to use async/await everywhere
