@@ -4,6 +4,7 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
+const { addresses } = require("./addresses");
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -20,6 +21,8 @@ async function main() {
   console.log(`
     Gas Tank deployed at ${gt.address}
   `);
+
+  // await gt.transferOwnership(addresses.timelock);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

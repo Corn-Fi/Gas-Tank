@@ -193,7 +193,7 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
         uint256 amount = _amount.add(txFee);
 
         require(userGasAmounts[_payer] >= amount, "CornFi Gas Tank: Insufficient user funds");
-        require(userPayeeApprovals[_payer][_payee], "CornFi Gas Tank: Payment not approved");
+        require(userPayeeApprovals[_payer][msg.sender], "CornFi Gas Tank: Payment not approved");
         
         userGasAmounts[_payer] = userGasAmounts[_payer].sub(amount);
 
