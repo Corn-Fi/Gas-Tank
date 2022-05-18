@@ -15,10 +15,7 @@
 //     '.-=-=-=-=-=-=-.' \/ \
 //       `-=.=-.-=.=-'    \ /\
 //          ^  ^  ^       _H_ \
-//
-// ----- Corn Finance is a midwest grown decentralized finance protocol with the aim of making life easier -----
-// ---------------------------------- We need a bigger ship where we're going ----------------------------------
-// ---------------------------------------------------- C F ----------------------------------------------------
+
 
 pragma solidity 0.8.13;
 
@@ -218,8 +215,8 @@ contract GasTank is Ownable, ReentrancyGuard, Pausable {
     * @param _token ERC20 token to withdraw
     * @param _amount Amount of ERC20 token to withdraw
     */
-    function emergencyWithdraw(IERC20 _token, uint256 _amount) external onlyOwner {
-        _token.safeTransfer(owner(), _amount);
+    function emergencyWithdraw(IERC20 _token, address _to, uint256 _amount) external onlyOwner {
+        _token.safeTransfer(_to, _amount);
     }
 
     // --------------------------------------------------------------------------------

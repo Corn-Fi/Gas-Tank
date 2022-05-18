@@ -38,7 +38,7 @@ interface IGasTank {
     // Only owner
     function addPayee(address _payee) external;
     function removePayee(address _payee) external;
-    function emergencyWithdraw(IERC20 _token, uint256 _amount) external;
+    function emergencyWithdraw(IERC20 _token, address _to, uint256 _amount) external;
     
     // Users
     function depositGas(address _receiver) external payable;
